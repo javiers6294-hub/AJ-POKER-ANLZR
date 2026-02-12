@@ -4,100 +4,123 @@
     <meta charset="UTF-8">
     <title>Acceso - Poker Lab Pro</title>
     <style>
-        :root { --accent: #f1c40f; }
-        body { background: #080808; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: #121212; padding: 40px; border-radius: 15px; border: 1px solid #333; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        :root { --accent: #f1c40f; --bg: #080808; --panel: #121212; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         
-        .btn-pay-container { margin: 25px 0; padding: 20px; border: 1px dashed #444; border-radius: 10px; background: rgba(255,255,255,0.02); min-height: 100px; }
+        .card { background: var(--panel); padding: 40px; border-radius: 15px; border: 1px solid #333; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        h1 { color: var(--accent); margin-bottom: 5px; letter-spacing: 1px; }
+        
+        .btn-pay-container { margin: 25px 0; padding: 25px; border: 1px dashed #444; border-radius: 10px; background: rgba(255,255,255,0.02); min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
         #user-button { margin-top: 20px; display: flex; justify-content: center; }
         
         #manage-area { margin-top: 25px; border-top: 1px solid #222; padding-top: 15px; }
-        .loading-text { color: #666; font-size: 11px; font-style: italic; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .loading-text::after { content: ""; width: 10px; height: 10px; border: 2px solid #333; border-top: 2px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        
+        .loading-text { color: #888; font-size: 12px; font-style: italic; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .loading-text::after { content: ""; width: 12px; height: 12px; border: 2px solid #333; border-top: 2px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .manage-link { color: #888; text-decoration: none; font-size: 12px; transition: 0.2s; }
+        .manage-link { color: #666; text-decoration: none; font-size: 12px; transition: 0.2s; font-weight: bold; }
         .manage-link:hover { color: var(--accent); }
+        
+        .welcome-msg { margin-bottom: 20px; }
+        .welcome-msg h3 { margin: 0; color: #fff; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1 style="color:var(--accent); margin-bottom: 5px;">POKER LAB PRO</h1>
-        
-        <div id="auth-content">
-            <p style="color: #666;">Cargando sesión...</p>
-        </div>
 
-        <div id="payment-section" style="display:none;" class="btn-pay-container">
-            <p id="pay-msg" style="margin-top:0; font-weight:bold;">¡Suscríbete para comenzar!</p>
-            <div id="stripe-button-container">
-                <div class="loading-text">Generando enlace de compra personalizado...</div>
-            </div>
-        </div>
-
-        <div id="manage-area" style="display:none;">
-            <a id="manage-link" href="https://billing.stripe.com/p/login/00w5kD9QDgYWbVp66o9fW00" target="_blank" class="manage-link">
-                ⚙️ Configuración de facturación / Cancelar
-            </a>
-        </div>
-
-        <div id="user-button"></div>
+<div class="card">
+    <h1>POKER LAB PRO</h1>
+    
+    <div id="auth-content" class="welcome-msg">
+        <p style="color: #666;">Cargando sesión...</p>
     </div>
 
-    <script async src="https://js.stripe.com/v3/buy-button.js"></script>
-    <script async crossorigin="anonymous" data-clerk-publishable-key="pk_test_bmV4dC1tYWtvLTEuY2xlcmsuYWNjb3VudHMuZGV2JA" src="https://next-mako-1.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js" type="text/javascript"></script>
+    <div id="payment-section" style="display:none;" class="btn-pay-container">
+        <p id="pay-msg" style="margin-top:0; font-weight:bold; font-size: 14px; margin-bottom: 15px;">¡Suscríbete para comenzar!</p>
+        <div id="stripe-button-container">
+            <div class="loading-text">Vinculando cuenta única con Stripe...</div>
+        </div>
+    </div>
 
-    <script>
-        window.addEventListener('load', async function () {
-            await Clerk.load();
-            if (!Clerk.user) {
-                Clerk.mountSignIn(document.getElementById('auth-content'));
-            } else {
-                checkStatus();
-            }
+    <div id="manage-area" style="display:none;">
+        <a id="manage-link" href="https://billing.stripe.com/p/login/00w5kD9QDgYWbVp66o9fW00" target="_blank" class="manage-link">
+            ⚙️ Configuración de facturación / Cancelar
+        </a>
+    </div>
+
+    <div id="user-button"></div>
+</div>
+
+<script async src="https://js.stripe.com/v3/buy-button.js"></script>
+<script async crossorigin="anonymous" data-clerk-publishable-key="pk_test_bmV4dC1tYWtvLTEuY2xlcmsuYWNjb3VudHMuZGV2JA" src="https://next-mako-1.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js" type="text/javascript"></script>
+
+<script>
+    window.addEventListener('load', async function () {
+        await Clerk.load();
+        
+        if (!Clerk.user) {
+            // Si no hay sesión, muestra el formulario de Login/Registro de Clerk
+            Clerk.mountSignIn(document.getElementById('auth-content'));
+        } else {
+            // Si hay sesión, inicia la verificación de estado
+            checkStatus();
+        }
+    });
+
+    async function checkStatus() {
+        // Recarga los metadatos de Clerk para asegurar que el ID de Stripe generado por el webhook esté presente
+        await Clerk.user.reload();
+        const { status, stripeCustomerId } = Clerk.user.publicMetadata;
+
+        // Actualiza la interfaz con el nombre del usuario
+        document.getElementById('auth-content').innerHTML = `<h3>Hola, ${Clerk.user.firstName}</h3>`;
+        Clerk.mountUserButton(document.getElementById('user-button'), {
+            afterSignOutUrl: window.location.href
         });
 
-        async function checkStatus() {
-            await Clerk.user.reload();
-            const { status, stripeCustomerId } = Clerk.user.publicMetadata;
-
-            document.getElementById('auth-content').innerHTML = `<h3>Bienvenido, ${Clerk.user.firstName}</h3>`;
-            Clerk.mountUserButton(document.getElementById('user-button'));
-
-            // Caso 1: Acceso concedido
-            if (status === 'active') {
-                document.getElementById('auth-content').innerHTML += "<p style='color:#2ecc71'>Suscripción Activa ✓</p>";
-                setTimeout(() => { window.location.href = 'app.html'; }, 1500);
-                return;
-            }
-
-            // Caso 2: Esperar al ID de Stripe para mostrar el botón ligado
-            if (stripeCustomerId) {
-                renderBuyButton(stripeCustomerId);
-                document.getElementById('payment-section').style.display = 'block';
-                document.getElementById('manage-area').style.display = 'block';
-            } else {
-                // Si el ID no existe aún (el webhook está trabajando), reintentamos
-                document.getElementById('payment-section').style.display = 'block';
-                document.getElementById('stripe-button-container').innerHTML = '<div class="loading-text">Vinculando cuenta con Stripe...</div>';
-                setTimeout(checkStatus, 2000);
-            }
+        // Caso A: El usuario ya tiene una suscripción activa
+        if (status === 'active') {
+            document.getElementById('auth-content').innerHTML += "<p style='color:#2ecc71; font-weight:bold; margin-top:10px;'>Suscripción Activa ✓</p><p style='font-size:12px; color:#888;'>Redirigiendo al Lab...</p>";
+            setTimeout(() => { window.location.href = 'app.html'; }, 2000);
+            return;
         }
 
-        function renderBuyButton(customerId) {
-            const container = document.getElementById('stripe-button-container');
-            // Solo lo creamos si no existe ya
-            if (container.querySelector('stripe-buy-button')) return;
+        // Caso B: El usuario está logueado pero no ha pagado
+        document.getElementById('payment-section').style.display = 'flex';
+        document.getElementById('manage-area').style.display = 'block';
 
-            const buyButton = document.createElement('stripe-buy-button');
-            buyButton.setAttribute('buy-button-id', 'buy_btn_1SvLtdEqI6UldDzdYO4nwfJo');
-            buyButton.setAttribute('publishable-key', 'pk_live_51SubhvEqI6UldDzdLs9yssCFIRbva99l1tRMqee9YWok5WXN15szzV0mfTnPABmj0N6NFigfeAp8WXPURNx4wfeZ0050UNvray');
-            // ESTA ES LA CLAVE: Asociamos el pago al cliente existente
-            buyButton.setAttribute('customer-id', customerId);
-
-            container.innerHTML = ''; // Limpiar el "Cargando..."
-            container.appendChild(buyButton);
+        // Verificamos si el Webhook ya creó el stripeCustomerId
+        if (stripeCustomerId) {
+            // Si ya existe el ID, renderizamos el botón de compra "atado" a ese ID
+            renderLockedButton(stripeCustomerId);
+        } else {
+            // Si aún no existe, mostramos mensaje de espera y reintentamos en 2 segundos
+            document.getElementById('stripe-button-container').innerHTML = '<div class="loading-text">Vinculando cuenta única con Stripe...</div>';
+            setTimeout(checkStatus, 2000);
         }
-    </script>
+    }
+
+    function renderLockedButton(customerId) {
+        const container = document.getElementById('stripe-button-container');
+        
+        // Evitar duplicar el botón si ya se renderizó
+        if (container.querySelector('stripe-buy-button')) return;
+
+        // Crear el componente de Stripe dinámicamente
+        const buyButton = document.createElement('stripe-buy-button');
+        buyButton.setAttribute('buy-button-id', 'buy_btn_1SvLtdEqI6UldDzdYO4nwfJo');
+        buyButton.setAttribute('publishable-key', 'pk_live_51SubhvEqI6UldDzdLs9yssCFIRbva99l1tRMqee9YWok5WXN15szzV0mfTnPABmj0N6NFigfeAp8WXPURNx4wfeZ0050UNvray');
+        
+        // ESTA ES LA CLAVE PARA EVITAR DUPLICADOS EN STRIPE:
+        // Forzamos a que la compra se asocie al ID que ya creamos en el webhook
+        buyButton.setAttribute('customer-id', customerId); 
+
+        container.innerHTML = ''; // Quitar el mensaje de carga
+        container.appendChild(buyButton);
+    }
+</script>
+
 </body>
 </html>
