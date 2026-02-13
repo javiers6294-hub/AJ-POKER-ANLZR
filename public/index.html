@@ -75,8 +75,13 @@
 <script>
     window.addEventListener('load', async function () {
         await Clerk.load();
+        
         if (!Clerk.user) {
-            Clerk.mountSignIn(document.getElementById('auth-content'));
+            // MODIFICACIÓN: Agregamos routing: 'virtual' para que el enlace 
+            // "Sign Up" funcione dentro del mismo componente sin recargar página.
+            Clerk.mountSignIn(document.getElementById('auth-content'), {
+                routing: 'virtual'
+            });
         } else {
             checkStatus();
         }
@@ -84,9 +89,12 @@
 
     async function checkStatus() {
         await Clerk.user.reload();
-        const { status, stripeCustomerId } = Clerk.user.publicMetadata;
+        // Verificamos si existen los metadatos antes de intentar leerlos para evitar errores
+        const metadata = Clerk.user.publicMetadata || {};
+        const status = metadata.status;
+        const stripeCustomerId = metadata.stripeCustomerId;
 
-        document.getElementById('auth-content').innerHTML = `<h3>Hola, ${Clerk.user.firstName}</h3>`;
+        document.getElementById('auth-content').innerHTML = `<h3>Hola, ${Clerk.user.firstName || 'Usuario'}</h3>`;
         document.getElementById('footer-area').style.display = 'flex';
         
         Clerk.mountUserButton(document.getElementById('user-button'), { 
@@ -108,6 +116,7 @@
             document.getElementById('manage-sync').style.display = 'none';
             document.getElementById('manage-link').style.display = 'inline-block';
         } else {
+            // Reintenta cada 2.5 segundos si no encuentra el ID de Stripe
             setTimeout(checkStatus, 2500); 
         }
     }
@@ -126,7 +135,7 @@
 
             const data = await response.json();
             if (data.url) window.location.href = data.url;
-            else throw new Error(data.error);
+            else throw new Error(data.error || "Error desconocido al crear checkout");
         } catch (err) {
             alert("Error: " + err.message);
             btn.disabled = false;
