@@ -135,7 +135,12 @@ function initCharts() {
             plugins: { 
                 legend: { display: false }, 
                 title: { display: true, text: t, color: '#fff', font: {size: 14} },
-                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: (v, ctx) => ctx.chart.data.labels[ctx.dataIndex] + '\n' + v + '%', display: true } 
+                datalabels: { 
+                    color: '#fff', 
+                    font: { weight: 'bold', size: 10 }, 
+                    formatter: (v, ctx) => ctx.chart.data.labels[ctx.dataIndex] + '\n' + v + '%', 
+                    display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0 
+                } 
             } 
         }
     });
