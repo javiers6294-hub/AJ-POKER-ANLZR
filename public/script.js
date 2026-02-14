@@ -139,20 +139,28 @@ function toggleGroup(el, p, idx) {
     });
 }
 
+// --- MODIFICADO: CONFIGURACIÓN PARA MOSTRAR TEXTO A UN COSTADO ---
 function initCharts() {
     const cfg = (t) => ({
         type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e74c3c', '#1abc9c', '#d35400'] }] },
         options: { 
             responsive: true, maintainAspectRatio: false, 
+            layout: { padding: { left: 0, right: 10, top: 0, bottom: 0 } },
             plugins: { 
-                legend: { display: false }, 
+                // 1. ACTIVAMOS LA LEYENDA LATERAL
+                legend: { 
+                    display: true, 
+                    position: 'right', // Coloca los textos a la derecha
+                    labels: {
+                        color: '#fff',
+                        font: { size: 10 },
+                        boxWidth: 10,
+                        padding: 6
+                    }
+                }, 
                 title: { display: true, text: t, color: '#fff', font: {size: 14} },
-                datalabels: { 
-                    color: '#fff', 
-                    font: { weight: 'bold', size: 10 }, 
-                    formatter: (v, ctx) => ctx.chart.data.labels[ctx.dataIndex] + '\n' + v + '%', 
-                    display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0 
-                } 
+                // 2. DESACTIVAMOS LOS DATALABELS INTERNOS (Adiós encimados)
+                datalabels: { display: false } 
             } 
         }
     });
@@ -160,13 +168,24 @@ function initCharts() {
     chartJ2 = new Chart(document.getElementById('chartJ2'), cfg('GRUPOS J2 (%)'));
 }
 
+// --- MODIFICADO: ACTUALIZAR ETIQUETAS EN LA LEYENDA ---
 function updateCharts(stats) {
-    const lbls = userGroups.map(g => g.name);
-    if(lbls.length === 0) { chartJ1.data.datasets[0].data = []; chartJ2.data.datasets[0].data = []; }
+    if(userGroups.length === 0) { 
+        chartJ1.data.datasets[0].data = []; chartJ1.data.labels = [];
+        chartJ2.data.datasets[0].data = []; chartJ2.data.labels = [];
+    }
     else {
-        chartJ1.data.labels = lbls; chartJ2.data.labels = lbls;
-        chartJ1.data.datasets[0].data = userGroups.map(g => stats.j1.t ? (g.cats.reduce((a,c)=>a+stats.j1.c[c],0)/stats.j1.t*100).toFixed(1) : 0);
-        chartJ2.data.datasets[0].data = userGroups.map(g => stats.j2.t ? (g.cats.reduce((a,c)=>a+stats.j2.c[c],0)/stats.j2.t*100).toFixed(1) : 0);
+        // Calculamos los valores
+        const data1 = userGroups.map(g => stats.j1.t ? (g.cats.reduce((a,c)=>a+stats.j1.c[c],0)/stats.j1.t*100).toFixed(1) : 0);
+        const data2 = userGroups.map(g => stats.j2.t ? (g.cats.reduce((a,c)=>a+stats.j2.c[c],0)/stats.j2.t*100).toFixed(1) : 0);
+
+        // Actualizamos datos
+        chartJ1.data.datasets[0].data = data1;
+        chartJ2.data.datasets[0].data = data2;
+
+        // INCRUSTAMOS EL PORCENTAJE EN EL NOMBRE PARA QUE SALGA EN LA LEYENDA LATERAL
+        chartJ1.data.labels = userGroups.map((g, i) => `${g.name} ${data1[i]}%`);
+        chartJ2.data.labels = userGroups.map((g, i) => `${g.name} ${data2[i]}%`);
     }
     chartJ1.update(); chartJ2.update();
 }
@@ -215,9 +234,6 @@ function createGroup() {
 
 function applyFilters() {
     lastSnap = JSON.stringify(playerCombos);
-    // MODIFICADO: Solo tomamos los checkboxes de categorías individuales.
-    // Como el grupo ahora funciona como un "Select All" visual, ya no necesitamos sumar las categorías del grupo aquí,
-    // porque ya estarán marcadas visualmente en los checkboxes individuales.
     let f1 = Array.from(document.querySelectorAll('.f-j1:checked')).map(i=>i.dataset.cat);
     let f2 = Array.from(document.querySelectorAll('.f-j2:checked')).map(i=>i.dataset.cat);
     
