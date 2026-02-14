@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId, 
-      automatic_payment_methods,
+      automatic_payment_methods: { enabled: true },
       line_items: [{
         price: 'price_1T0sB4EqI6UldDzdCFpjGaO0', // Reemplaza con tu price_...
         quantity: 1,
