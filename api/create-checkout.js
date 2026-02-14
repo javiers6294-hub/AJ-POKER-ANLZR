@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       mode: 'subscription',
       // CONFIGURACIÓN DEL PERIODOD DE PRUEBA
       subscription_data: {
-        trial_period_days: 2, // Cambia este número por los días que quieras dar gratis
+        trial_period_days: 0, // Cambia este número por los días que quieras dar gratis
       },
       // Esto obliga a Stripe a pedir la tarjeta aunque el total inicial sea $0
       payment_method_collection: 'always', 
