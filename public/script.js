@@ -254,4 +254,42 @@ function applyFilters() {
     let f1 = Array.from(document.querySelectorAll('.f-j1:checked')).map(i=>i.dataset.cat);
     let f2 = Array.from(document.querySelectorAll('.f-j2:checked')).map(i=>i.dataset.cat);
     
-    const pr=(p,f)=>{ if(!f.length)return; for(let id in playerCombos[p]){ playerCombos[p][id]=playerCombos[p][id].filter(c=>f.includes(getBestCategory(c,board))); if(!playerCombos[p][id].length)
+    const pr=(p,f)=>{ if(!f.length)return; for(let id in playerCombos[p]){ playerCombos[p][id]=playerCombos[p][id].filter(c=>f.includes(getBestCategory(c,board))); if(!playerCombos[p][id].length) delete playerCombos[p][id]; }};
+    pr('j1',f1); pr('j2',f2); sync(); update();
+}
+
+function undoFilter() { if(lastSnap){ playerCombos=JSON.parse(lastSnap); lastSnap=null; sync(); update(); } }
+
+function sync() { document.querySelectorAll('.cell').forEach(c => { c.classList.remove('p1-sel','p2-sel'); if(c.id.startsWith('m1')&&playerCombos.j1[c.id]) c.classList.add('p1-sel'); if(c.id.startsWith('m2')&&playerCombos.j2[c.id]) c.classList.add('p2-sel'); }); }
+
+function openH(){ const l=document.getElementById('hList'); l.innerHTML=""; hierarchy.forEach((n,i)=>l.innerHTML+=`<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #333; font-size:11px;"><span>${n}</span><div><button onclick="moveH(${i},-1)">▲</button><button onclick="moveH(${i},1)">▼</button></div></div>`); document.getElementById('modalH').style.display='block'; }
+function moveH(i,d){ let n=i+d; if(n>=0&&n<hierarchy.length){[hierarchy[i],hierarchy[n]]=[hierarchy[n],hierarchy[i]]; openH();}}
+function closeH(){ document.getElementById('modalH').style.display='none'; update(); }
+
+function saveRange(p){ const n=prompt("Nombre del rango:"); if(!n)return; const d={}; for(let id in playerCombos[p]) d[id.split('-').slice(1).join('-')]=playerCombos[p][id]; library.push({name:n, data:d, p}); renderLib(); }
+
+function renderLib(){ 
+    const b=document.getElementById('libBox'); b.innerHTML=""; 
+    library.forEach((it,i)=>b.innerHTML+=`
+        <div class="lib-item">
+            <div style="font-weight:bold; color:var(--accent); font-size:11px;">${it.name.toUpperCase()} <span style="font-size:9px; color:#666;">[${it.p.toUpperCase()}]</span></div>
+            <div class="lib-actions">
+                <button class="btn-pro btn-util" style="flex:1; padding:4px; font-size:9px;" onclick="loadRange(${i},'j1')">P1</button>
+                <button class="btn-pro btn-util" style="flex:1; padding:4px; font-size:9px;" onclick="loadRange(${i},'j2')">P2</button>
+                <button class="btn-pro btn-danger" style="flex:0.6; padding:4px; font-size:9px;" onclick="library.splice(${i},1);renderLib()">DEL</button>
+            </div>
+        </div>`); 
+}
+
+function loadRange(idx,tP){ const d=library[idx].data, nC={}; for(let u in d) nC[`${tP==='j1'?'m1':'m2'}-${u}`]=JSON.parse(JSON.stringify(d[u])); playerCombos[tP]=nC; sync(); update(); }
+
+function exportJSON(){ const b=new Blob([JSON.stringify({playerCombos,board,library,hierarchy,userGroups})],{type:"application/json"}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download="poker_lab_pro.json"; a.click(); }
+
+function importJSON(e){ const r=new FileReader(); r.onload=(ev)=>{ const d=JSON.parse(ev.target.result); playerCombos=d.playerCombos; board=d.board; library=d.library||[]; hierarchy=d.hierarchy||hierarchy; userGroups=d.userGroups||[]; sync(); renderDeck(); renderBoard(); renderLib(); update(); }; r.readAsText(e.target.files[0]); }
+
+// Inicialización
+initCharts(); 
+renderMatrix('m1','j1','p1-sel'); 
+renderMatrix('m2','j2','p2-sel'); 
+renderDeck(); 
+update();
