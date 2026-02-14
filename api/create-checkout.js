@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       line_items: [{
         // IMPORTANTE: Asegúrate de que este sea el ID del precio 
         // que configuraste con múltiples monedas en el Dashboard.
-        price: 'price_TU_NUEVO_ID_AQUI', 
+        price: 'price_1T0sB4EqI6UldDzdCFpjGaO0', 
         quantity: 1,
       }],
       mode: 'subscription',
