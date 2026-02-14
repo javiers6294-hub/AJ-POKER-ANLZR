@@ -20,16 +20,16 @@ export default async function handler(req, res) {
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
       
-      // CAMBIO 1: Habilitar métodos automáticos (necesario para cambio de moneda)
-      automatic_payment_methods: { enabled: true },
-      
-      // ELIMINAR O COMENTAR ESTA LÍNEA ANTIGUA:
-      // payment_method_types: ['card'],
+      // --- CORRECCIÓN ---
+      // Quitamos 'automatic_payment_methods' porque tu versión no lo soporta.
+      // Usamos el método clásico que sí funciona en tu versión:
+      payment_method_types: ['card'], 
+      // ------------------
 
       line_items: [{
-        // CAMBIO 2: ¡AQUÍ DEBES PEGAR TU NUEVO ID DE PRECIO!
-        // Ve a Stripe > Catálogo > Tu Producto > Precios > Copiar ID (price_...)
-        price: 'price_1T0sB4EqI6UldDzdCFpjGaO0', 
+        // IMPORTANTE: Asegúrate de que este sea el ID del precio 
+        // que configuraste con múltiples monedas en el Dashboard.
+        price: 'price_TU_NUEVO_ID_AQUI', 
         quantity: 1,
       }],
       mode: 'subscription',
