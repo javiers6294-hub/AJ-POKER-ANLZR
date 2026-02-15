@@ -3,7 +3,7 @@ Chart.register(ChartDataLabels);
 // Variables de Estado
 let hierarchy = ["STRAIGHT FLUSH","QUADS","FULL HOUSE","FLUSH","STRAIGHT","3 OF A KIND","TWO PAIR","OVERPAIR","TOP PAIR","TOP PAIR BAD K","MIDDLE PAIR","WEAK PAIR","FLUSH DRAW","OESD","GUTSHOT","ACE HIGH (kicker 9+)","ACE HIGH (kicker <9)","OVERCARDS","BACK DOOR FD","BACK DOOR SD","AIR / NOTHING"];
 
-// CAMBIO REALIZADO: Reemplazado lastSnap = null por historyStack = []
+// CAMBIO: 'lastSnap' ahora es 'historyStack' para deshacer múltiples pasos
 let playerCombos = { j1: {}, j2: {} }, board = [], userGroups = [], library = [], historyStack = [];
 let isDragging = false, dragMode = true, chartJ1, chartJ2;
 
@@ -235,9 +235,9 @@ function createGroup() {
     if(n && cats.length) { userGroups.push({name:n, cats}); document.getElementById('grpName').value=""; update(); }
 }
 
-// CAMBIO REALIZADO: Ahora usa historyStack para guardar múltiples estados
+// FUNCION ACTUALIZADA: Aplica filtro y guarda en historial
 function applyFilters() {
-    historyStack.push(JSON.stringify(playerCombos)); // Guarda el estado actual en el historial
+    historyStack.push(JSON.stringify(playerCombos)); // Guarda estado actual
     
     let f1 = Array.from(document.querySelectorAll('.f-j1:checked')).map(i=>i.dataset.cat);
     let f2 = Array.from(document.querySelectorAll('.f-j2:checked')).map(i=>i.dataset.cat);
@@ -246,13 +246,32 @@ function applyFilters() {
     pr('j1',f1); pr('j2',f2); sync(); update();
 }
 
-// CAMBIO REALIZADO: Ahora recupera estados del historial uno por uno (undo multinivel)
+// FUNCION ACTUALIZADA: Deshacer paso a paso
 function undoFilter() { 
     if(historyStack.length > 0) { 
-        playerCombos = JSON.parse(historyStack.pop()); // Saca el último estado y restaura
+        playerCombos = JSON.parse(historyStack.pop()); 
         sync(); 
         update(); 
     } 
+}
+
+// NUEVA FUNCION: Limpieza total (Datos, Visual, Historial y Filtros)
+function clearTable() {
+    if (confirm("¿Seguro que quieres borrar todo? (Se reiniciarán Rangos, Board y Filtros)")) {
+        // 1. Reiniciar Datos
+        playerCombos = { j1: {}, j2: {} };
+        board = [];
+        historyStack = []; 
+
+        // 2. Limpiar visualmente los checkboxes de filtro
+        document.querySelectorAll('input[type="checkbox"]').forEach(box => box.checked = false);
+
+        // 3. Actualizar UI
+        sync();        
+        renderBoard(); 
+        renderDeck();  
+        update();      
+    }
 }
 
 function sync() { document.querySelectorAll('.cell').forEach(c => { c.classList.remove('p1-sel','p2-sel'); if(c.id.startsWith('m1')&&playerCombos.j1[c.id]) c.classList.add('p1-sel'); if(c.id.startsWith('m2')&&playerCombos.j2[c.id]) c.classList.add('p2-sel'); }); }
