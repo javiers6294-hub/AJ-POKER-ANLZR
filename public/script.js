@@ -3,7 +3,8 @@ Chart.register(ChartDataLabels);
 // Variables de Estado
 let hierarchy = ["STRAIGHT FLUSH","QUADS","FULL HOUSE","FLUSH","STRAIGHT","3 OF A KIND","TWO PAIR","OVERPAIR","TOP PAIR","TOP PAIR BAD K","MIDDLE PAIR","WEAK PAIR","FLUSH DRAW","OESD","GUTSHOT","ACE HIGH (kicker 9+)","ACE HIGH (kicker <9)","OVERCARDS","BACK DOOR FD","BACK DOOR SD","AIR / NOTHING"];
 
-let playerCombos = { j1: {}, j2: {} }, board = [], userGroups = [], library = [], lastSnap = null;
+// CAMBIO REALIZADO: Reemplazado lastSnap = null por historyStack = []
+let playerCombos = { j1: {}, j2: {} }, board = [], userGroups = [], library = [], historyStack = [];
 let isDragging = false, dragMode = true, chartJ1, chartJ2;
 
 const ranks=['A','K','Q','J','T','9','8','7','6','5','4','3','2'], suits=['p','c','d','t'],
@@ -91,7 +92,7 @@ function update() {
 
     const body = document.getElementById('m-body'); body.innerHTML = "";
     
-    // RENDERIZADO DE GRUPOS (Con Trigger toggleGroup)
+    // RENDERIZADO DE GRUPOS
     userGroups.forEach((g, idx) => {
         const v1 = g.cats.reduce((a,c)=>a+stats.j1.c[c],0), v2 = g.cats.reduce((a,c)=>a+stats.j2.c[c],0);
         const p1 = stats.j1.t ? (v1/stats.j1.t*100).toFixed(1) : 0, p2 = stats.j2.t ? (v2/stats.j2.t*100).toFixed(1) : 0;
@@ -129,11 +130,9 @@ function update() {
     updateCharts(stats);
 }
 
-// Nueva función para propagar la selección del grupo a sus categorías
 function toggleGroup(el, p, idx) {
     const isChecked = el.checked;
     userGroups[idx].cats.forEach(cat => {
-        // Busca el checkbox de la categoría específica y copia el estado del grupo
         const catBox = document.querySelector(`.f-${p}[data-cat="${cat}"]`);
         if(catBox) catBox.checked = isChecked;
     });
@@ -146,19 +145,11 @@ function initCharts() {
             responsive: true, maintainAspectRatio: false, 
             layout: { padding: { left: 0, right: 10, top: 0, bottom: 0 } },
             plugins: { 
-                // ACTIVAMOS LA LEYENDA LATERAL
                 legend: { 
-                    display: true, 
-                    position: 'right',
-                    labels: {
-                        color: '#fff',
-                        font: { size: 10 },
-                        boxWidth: 10,
-                        padding: 6
-                    }
+                    display: true, position: 'right',
+                    labels: { color: '#fff', font: { size: 10 }, boxWidth: 10, padding: 6 }
                 }, 
                 title: { display: true, text: t, color: '#fff', font: {size: 14} },
-                // DESACTIVAMOS LOS DATALABELS INTERNOS
                 datalabels: { display: false } 
             } 
         }
@@ -167,13 +158,11 @@ function initCharts() {
     chartJ2 = new Chart(document.getElementById('chartJ2'), cfg('GRUPOS J2 (%)'));
 }
 
-// Función auxiliar para cortar texto largo en varias líneas
 function wrapText(str, maxChars = 14) {
     if (str.length <= maxChars) return str;
     const words = str.split(' ');
     const lines = [];
     let currentLine = words[0];
-
     for (let i = 1; i < words.length; i++) {
         if (currentLine.length + 1 + words[i].length <= maxChars) {
             currentLine += " " + words[i];
@@ -186,21 +175,18 @@ function wrapText(str, maxChars = 14) {
     return lines;
 }
 
-// MODIFICADO: Ahora aplica wrapText a las etiquetas para que no se corten
 function updateCharts(stats) {
     if(userGroups.length === 0) { 
         chartJ1.data.datasets[0].data = []; chartJ1.data.labels = [];
         chartJ2.data.datasets[0].data = []; chartJ2.data.labels = [];
     }
     else {
-        // Calculamos los porcentajes
         const data1 = userGroups.map(g => stats.j1.t ? (g.cats.reduce((a,c)=>a+stats.j1.c[c],0)/stats.j1.t*100).toFixed(1) : 0);
         const data2 = userGroups.map(g => stats.j2.t ? (g.cats.reduce((a,c)=>a+stats.j2.c[c],0)/stats.j2.t*100).toFixed(1) : 0);
 
         chartJ1.data.datasets[0].data = data1;
         chartJ2.data.datasets[0].data = data2;
 
-        // APLICAMOS WRAPTEXT: Creamos un array de strings (multilínea) para cada etiqueta
         chartJ1.data.labels = userGroups.map((g, i) => wrapText(`${g.name} (${data1[i]}%)`));
         chartJ2.data.labels = userGroups.map((g, i) => wrapText(`${g.name} (${data2[i]}%)`));
     }
@@ -249,8 +235,10 @@ function createGroup() {
     if(n && cats.length) { userGroups.push({name:n, cats}); document.getElementById('grpName').value=""; update(); }
 }
 
+// CAMBIO REALIZADO: Ahora usa historyStack para guardar múltiples estados
 function applyFilters() {
-    lastSnap = JSON.stringify(playerCombos);
+    historyStack.push(JSON.stringify(playerCombos)); // Guarda el estado actual en el historial
+    
     let f1 = Array.from(document.querySelectorAll('.f-j1:checked')).map(i=>i.dataset.cat);
     let f2 = Array.from(document.querySelectorAll('.f-j2:checked')).map(i=>i.dataset.cat);
     
@@ -258,7 +246,14 @@ function applyFilters() {
     pr('j1',f1); pr('j2',f2); sync(); update();
 }
 
-function undoFilter() { if(lastSnap){ playerCombos=JSON.parse(lastSnap); lastSnap=null; sync(); update(); } }
+// CAMBIO REALIZADO: Ahora recupera estados del historial uno por uno (undo multinivel)
+function undoFilter() { 
+    if(historyStack.length > 0) { 
+        playerCombos = JSON.parse(historyStack.pop()); // Saca el último estado y restaura
+        sync(); 
+        update(); 
+    } 
+}
 
 function sync() { document.querySelectorAll('.cell').forEach(c => { c.classList.remove('p1-sel','p2-sel'); if(c.id.startsWith('m1')&&playerCombos.j1[c.id]) c.classList.add('p1-sel'); if(c.id.startsWith('m2')&&playerCombos.j2[c.id]) c.classList.add('p2-sel'); }); }
 
