@@ -301,9 +301,46 @@ function exportJSON(){ const b=new Blob([JSON.stringify({playerCombos,board,libr
 
 function importJSON(e){ const r=new FileReader(); r.onload=(ev)=>{ const d=JSON.parse(ev.target.result); playerCombos=d.playerCombos; board=d.board; library=d.library||[]; hierarchy=d.hierarchy||hierarchy; userGroups=d.userGroups||[]; sync(); renderDeck(); renderBoard(); renderLib(); update(); }; r.readAsText(e.target.files[0]); }
 
+// --- NUEVA FUNCIÓN PARA CARGAR LA CONFIGURACIÓN POR DEFECTO ---
+function loadDefaultConfig() {
+    // Busca el archivo en la raiz. Asegúrate que se llame exactamente así y tenga extensión .json
+    fetch('poker_lab_pro (1).json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("No se encontró el archivo de configuración predeterminada.");
+            }
+            return response.json();
+        })
+        .then(d => {
+            // Si carga con éxito, aplicamos los datos igual que en importJSON
+            playerCombos = d.playerCombos || { j1: {}, j2: {} };
+            board = d.board || [];
+            library = d.library || [];
+            // Si el JSON trae jerarquía la usamos, si no, dejamos la default
+            if(d.hierarchy) hierarchy = d.hierarchy; 
+            userGroups = d.userGroups || [];
+            
+            // Actualizamos toda la UI
+            sync(); 
+            renderDeck(); 
+            renderBoard(); 
+            renderLib(); 
+            update();
+            console.log("Configuración predeterminada cargada con éxito.");
+        })
+        .catch(error => {
+            console.warn(error);
+            console.log("Iniciando aplicación con valores vacíos.");
+            // Si falla (no existe el archivo), simplemente actualizamos la vista vacía
+            update();
+        });
+}
+
 // Inicialización
 initCharts(); 
 renderMatrix('m1','j1','p1-sel'); 
 renderMatrix('m2','j2','p2-sel'); 
 renderDeck(); 
-update();
+
+// CAMBIO AQUÍ: Llamamos a la carga de config en vez de update() directo
+loadDefaultConfig();
