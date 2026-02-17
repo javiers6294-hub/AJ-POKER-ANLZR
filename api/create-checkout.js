@@ -33,10 +33,7 @@ export default async function handler(req, res) {
         quantity: 1,
       }],
       mode: 'subscription',
-      // CONFIGURACIÓN DEL PERIODOD DE PRUEBA
-      subscription_data: {
-          trial_period_days: 5, // Cambia este número por los días que quieras dar gratis
-      },
+
       payment_method_collection: 'always', 
       success_url: `${req.headers.origin}/app.html`,
       cancel_url: `${req.headers.origin}/index.html`,
