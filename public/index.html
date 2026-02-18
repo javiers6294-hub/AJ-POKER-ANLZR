@@ -10,6 +10,28 @@
         .card { background: var(--panel); padding: 40px; border-radius: 15px; border: 1px solid #333; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h1 { color: var(--accent); margin-bottom: 5px; letter-spacing: 1px; }
         
+        /* --- ESTILOS NUEVOS PARA EL ANUNCIO --- */
+        .promo-banner {
+            background: rgba(241, 196, 15, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #ddd;
+            animation: glow 3s infinite alternate;
+        }
+        .promo-highlight {
+            color: var(--accent);
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 5px -5px var(--accent); }
+            to { box-shadow: 0 0 15px -5px var(--accent); }
+        }
+        /* -------------------------------------- */
+
         .btn-pay-container { margin: 25px 0; padding: 25px; border: 1px dashed #444; border-radius: 10px; background: rgba(255,255,255,0.02); min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
         .stripe-button { background-color: #635bff; color: white; border: none; padding: 14px 24px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: filter 0.2s; width: 100%; font-size: 14px; }
@@ -35,17 +57,21 @@
 <div class="card">
     <h1>POKER LAB PRO</h1>
     
+    <div id="promo-header" class="promo-banner">
+        🔥 Regístrate hoy y obtén <span class="promo-highlight">5 DÍAS GRATIS</span> de acceso total.
+    </div>
+
     <div id="auth-content">
         <p style="color: #666;">Cargando sesión...</p>
     </div>
 
     <div id="payment-section" style="display:none;" class="btn-pay-container">
-        <div class="trial-badge">✅ Suscribete</div>
-        <p style="margin-top:0; font-size: 12px; margin-bottom: 15px; color: #aaa;">Acceso total inmediato. Cancela cuando quieras.</p>
+        <div class="trial-badge">✅ Oferta Especial</div>
+        <p style="margin-top:0; font-size: 12px; margin-bottom: 15px; color: #aaa;">Sin cobros inmediatos. Cancela cuando quieras.</p>
         
         <div id="checkout-container" style="width: 100%;">
             <button id="checkout-btn" class="stripe-button" onclick="handleCheckout()">
-                Obtener acceso
+                Activar mis 5 Días Gratis 🎁
             </button>
         </div>
     </div>
@@ -77,21 +103,18 @@
         
         if (!Clerk.user) {
             const authDiv = document.getElementById('auth-content');
-            // Detectamos si la URL tiene ?screen=signup
             const urlParams = new URLSearchParams(window.location.search);
             const screen = urlParams.get('screen');
 
             if (screen === 'signup') {
-                // Montamos el REGISTRO
                 Clerk.mountSignUp(authDiv, {
-                    signInUrl: 'index.html', // El link "Sign In" recargará la página limpia
-                    afterSignUpUrl: 'index.html' // A donde ir tras registrarse
+                    signInUrl: 'index.html', 
+                    afterSignUpUrl: 'index.html' 
                 });
             } else {
-                // Montamos el INICIO DE SESIÓN
                 Clerk.mountSignIn(authDiv, {
-                    signUpUrl: 'index.html?screen=signup', // El link "Sign Up" recargará con el parámetro
-                    afterSignInUrl: 'index.html' // A donde ir tras loguearse
+                    signUpUrl: 'index.html?screen=signup', 
+                    afterSignInUrl: 'index.html' 
                 });
             }
         } else {
@@ -100,6 +123,9 @@
     });
 
     async function checkStatus() {
+        // Ocultamos el banner promocional principal para no saturar cuando ya está logueado
+        document.getElementById('promo-header').style.display = 'none';
+
         await Clerk.user.reload();
         const metadata = Clerk.user.publicMetadata || {};
         const status = metadata.status;
@@ -131,7 +157,7 @@
     async function handleCheckout() {
         const btn = document.getElementById('checkout-btn');
         btn.disabled = true;
-        btn.innerText = "Preparando pasarela...";
+        btn.innerText = "Preparando tu prueba...";
 
         try {
             const response = await fetch('/api/create-checkout', {
@@ -146,7 +172,7 @@
         } catch (err) {
             alert("Error: " + err.message);
             btn.disabled = false;
-            btn.innerText = "Comenzar Prueba Gratuita";
+            btn.innerText = "Activar mis 5 Días Gratis 🎁";
         }
     }
 </script>
