@@ -19,16 +19,15 @@ export default async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       customer: stripeCustomerId,
-      
-      // --- CORRECCIÓN ---
-      // Quitamos 'automatic_payment_methods' porque tu versión no lo soporta.
-      // Usamos el método clásico que sí funciona en tu versión:
       payment_method_types: ['card'], 
-      // ------------------
+
+      // --- MODIFICACIÓN: AGREGADO PERIODO DE PRUEBA ---
+      subscription_data: {
+        trial_period_days: 5,
+      },
+      // ------------------------------------------------
 
       line_items: [{
-        // IMPORTANTE: Asegúrate de que este sea el ID del precio 
-        // que configuraste con múltiples monedas en el Dashboard.
         price: 'price_1T0sB4EqI6UldDzdCFpjGaO0', 
         quantity: 1,
       }],
