@@ -30,13 +30,15 @@
             from { box-shadow: 0 0 5px -5px var(--accent); }
             to { box-shadow: 0 0 15px -5px var(--accent); }
         }
-        /* -------------------------------------- */
 
         .btn-pay-container { margin: 25px 0; padding: 25px; border: 1px dashed #444; border-radius: 10px; background: rgba(255,255,255,0.02); min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
         .stripe-button { background-color: #635bff; color: white; border: none; padding: 14px 24px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: filter 0.2s; width: 100%; font-size: 14px; }
         .stripe-button:hover { filter: brightness(1.1); }
         .stripe-button:disabled { background-color: #444; cursor: not-allowed; }
+
+        .free-button { background-color: #222; color: #ececec; border: 1px solid #444; padding: 14px 24px; border-radius: 4px; font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%; font-size: 14px; margin-top: 15px; }
+        .free-button:hover { border-color: var(--accent); color: var(--accent); }
 
         .footer-tools { margin-top: 30px; padding-top: 20px; border-top: 1px solid #222; display: flex; flex-direction: column; align-items: center; gap: 15px; }
         
@@ -64,6 +66,10 @@
     <div id="auth-content">
         <p style="color: #666;">Cargando sesión...</p>
     </div>
+
+    <button class="free-button" onclick="window.location.href='free.html'">
+        🚀 Probar Versión Gratuita (Sin Registro)
+    </button>
 
     <div id="payment-section" style="display:none;" class="btn-pay-container">
         <div class="trial-badge">✅ Oferta Especial</div>
@@ -123,7 +129,6 @@
     });
 
     async function checkStatus() {
-        // Ocultamos el banner promocional principal para no saturar cuando ya está logueado
         document.getElementById('promo-header').style.display = 'none';
 
         await Clerk.user.reload();
