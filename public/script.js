@@ -1,9 +1,13 @@
 Chart.register(ChartDataLabels);
 
+// --- FUNCIÓN GLOBAL DE ALERTA PREMIUM ---
+window.showPremiumAlert = function() {
+    alert("🔒 Esta funcionalidad solo está habilitada en la versión de paga. ¡Regístrate y obtén la versión PRO para guardar tus rangos, crear filtros avanzados y analizar Turn y River!");
+};
+
 // Variables de Estado
 let hierarchy = ["STRAIGHT FLUSH","QUADS","FULL HOUSE","FLUSH","STRAIGHT","3 OF A KIND","TWO PAIR","OVERPAIR","TOP PAIR","TOP PAIR BAD K","MIDDLE PAIR","WEAK PAIR","FLUSH DRAW","OESD","GUTSHOT","ACE HIGH (kicker 9+)","ACE HIGH (kicker <9)","OVERCARDS","BACK DOOR FD","BACK DOOR SD","AIR / NOTHING"];
 
-// CAMBIO: 'lastSnap' ahora es 'historyStack' para deshacer múltiples pasos
 let playerCombos = { j1: {}, j2: {} }, board = [], userGroups = [], library = [], historyStack = [];
 let isDragging = false, dragMode = true, chartJ1, chartJ2;
 
@@ -11,7 +15,6 @@ const ranks=['A','K','Q','J','T','9','8','7','6','5','4','3','2'], suits=['p','c
       suitSym={p:'♠',c:'♥',d:'♦',t:'♣'}, suitCls={p:'p-color',c:'c-color',d:'d-color',t:'t-color'},
       vals={'A':14,'K':13,'Q':12,'J':11,'T':10,'9':9,'8':8,'7':7,'6':6,'5':5,'4':4,'3':3,'2':2};
 
-// MOTOR REGLA DE ORO (A ∩ B)
 function getBestCategory(h, b) {
     if (!b.length) return "AIR / NOTHING";
     const hv=h.map(c=>c.v).sort((a,b)=>b-a), bv=b.map(c=>c.v).sort((a,b)=>b-a), all=[...h,...b];
@@ -74,7 +77,6 @@ function getBestCategory(h, b) {
     return "AIR / NOTHING";
 }
 
-// Lógica de UI y actualización
 function update() {
     let stats = { j1:{c:{}, t:0}, j2:{c:{}, t:0} };
     hierarchy.forEach(h => { stats.j1.c[h]=0; stats.j2.c[h]=0; });
@@ -96,8 +98,13 @@ function update() {
     userGroups.forEach((g, idx) => {
         const v1 = g.cats.reduce((a,c)=>a+stats.j1.c[c],0), v2 = g.cats.reduce((a,c)=>a+stats.j2.c[c],0);
         const p1 = stats.j1.t ? (v1/stats.j1.t*100).toFixed(1) : 0, p2 = stats.j2.t ? (v2/stats.j2.t*100).toFixed(1) : 0;
+        
+        // Bloqueo condicional de las casillas para los grupos
+        const lockGroupAction1 = window.IS_FREE_VERSION ? `onclick="showPremiumAlert(); return false;"` : `onchange="toggleGroup(this,'j1',${idx})"`;
+        const lockGroupAction2 = window.IS_FREE_VERSION ? `onclick="showPremiumAlert(); return false;"` : `onchange="toggleGroup(this,'j2',${idx})"`;
+
         body.innerHTML += `<tr style="background:rgba(241,196,15,0.07);">
-            <td><input type="checkbox" class="f-j1-g" data-idx="${idx}" onchange="toggleGroup(this,'j1',${idx})"></td>
+            <td><input type="checkbox" class="f-j1-g" data-idx="${idx}" ${lockGroupAction1}></td>
             <td style="font-weight:bold; color:var(--j1);">${v1}</td>
             <td style="color:var(--accent); font-weight:bold; font-size:14px;">📁 ${g.name}</td>
             <td>
@@ -105,16 +112,20 @@ function update() {
                 <div class="bar-wrap bar-grp"><div class="bar-fill" style="width:${p2}%; background:#2980b9"></div><span class="bar-text">${v2} combos (${p2}%)</span></div>
             </td>
             <td style="font-weight:bold; color:var(--j2);">${v2}</td>
-            <td><input type="checkbox" class="f-j2-g" data-idx="${idx}" onchange="toggleGroup(this,'j2',${idx})"></td>
-            <td onclick="userGroups.splice(${idx},1);update()" style="color:var(--danger); cursor:pointer; font-weight:bold; font-size:18px;">×</td></tr>`;
+            <td><input type="checkbox" class="f-j2-g" data-idx="${idx}" ${lockGroupAction2}></td>
+            <td onclick="${window.IS_FREE_VERSION ? 'showPremiumAlert()' : `userGroups.splice(${idx},1);update()`}" style="color:var(--danger); cursor:pointer; font-weight:bold; font-size:18px;">×</td></tr>`;
     });
 
     // RENDERIZADO DE CATEGORIAS
     hierarchy.forEach(cat => {
         const c1 = stats.j1.c[cat], c2 = stats.j2.c[cat], p1 = stats.j1.t ? (c1/stats.j1.t*100).toFixed(1) : 0, p2 = stats.j2.t ? (c2/stats.j2.t*100).toFixed(1) : 0;
         const tags = userGroups.filter(g => g.cats.includes(cat)).map(g => `<span class="tag-group">${g.name}</span>`).join("");
+        
+        // Bloqueo condicional de las casillas para categorías
+        const lockCatAction = window.IS_FREE_VERSION ? `onclick="showPremiumAlert(); return false;"` : ``;
+
         body.innerHTML += `<tr>
-            <td><input type="checkbox" class="f-j1" data-cat="${cat}"></td>
+            <td><input type="checkbox" class="f-j1" data-cat="${cat}" ${lockCatAction}></td>
             <td>${c1}</td>
             <td><div style="font-weight:bold;">${cat}</div><div>${tags}</div></td>
             <td>
@@ -122,7 +133,7 @@ function update() {
                 <div class="bar-wrap bar-cat"><div class="bar-fill" style="width:${p2}%; background:#1a5276"></div><span class="bar-text">${c2} combos (${p2}%)</span></div>
             </td>
             <td>${c2}</td>
-            <td><input type="checkbox" class="f-j2" data-cat="${cat}"></td>
+            <td><input type="checkbox" class="f-j2" data-cat="${cat}" ${lockCatAction}></td>
             <td></td></tr>`;
     });
 
@@ -198,7 +209,7 @@ function renderMatrix(id, p, cls) {
     ranks.forEach((r1, i) => ranks.forEach((r2, j) => {
         const c = document.createElement('div'); c.className = 'cell'; c.id = `${id}-${i}-${j}`;
         c.innerText = i < j ? r1+r2+'s' : (i > j ? r2+r1+'o' : r1+r1);
-        c.onmousedown = () => { isDragging=true; dragMode=!c.classList.contains(cls); toggle(c,p,cls,dragMode); };
+        c.onmousedown = () => { historyStack.push(JSON.stringify(playerCombos)); isDragging=true; dragMode=!c.classList.contains(cls); toggle(c,p,cls,dragMode); };
         c.onmouseenter = () => { if(isDragging) toggle(c,p,cls,dragMode); };
         m.appendChild(c);
     }));
@@ -220,7 +231,21 @@ function renderDeck(){
         const c = document.createElement('div'); c.className = `cell card-ui ${isB?'':suitCls[s]}`;
         c.style.width="28px"; c.style.height="38px";
         if(isB) c.style.opacity="0.1"; c.innerHTML=`${r}${suitSym[s]}`;
-        c.onclick=()=>{ const idx=board.findIndex(bc=>bc.v===vals[r]&&bc.s===s); if(idx>-1) board.splice(idx,1); else if(board.length<5) board.push({v:vals[r],s,r}); renderBoard(); renderDeck(); update(); };
+        c.onclick=()=>{ 
+            const idx=board.findIndex(bc=>bc.v===vals[r]&&bc.s===s); 
+            // Validamos dinámicamente el límite del board
+            const maxBoardCards = window.IS_FREE_VERSION ? 3 : 5;
+            
+            if(idx>-1) { 
+                board.splice(idx,1); 
+            } else if(board.length < maxBoardCards) { 
+                board.push({v:vals[r],s,r}); 
+            } else if (window.IS_FREE_VERSION) {
+                showPremiumAlert();
+                return;
+            }
+            renderBoard(); renderDeck(); update(); 
+        };
         d.appendChild(c);
     }));
 }
@@ -231,14 +256,14 @@ function renderBoard(){
 }
 
 function createGroup() {
+    if (window.IS_FREE_VERSION) return;
     const n = document.getElementById('grpName').value, cats = Array.from(document.querySelectorAll('.f-j1:checked')).map(i => i.dataset.cat);
     if(n && cats.length) { userGroups.push({name:n, cats}); document.getElementById('grpName').value=""; update(); }
 }
 
-// FUNCION ACTUALIZADA: Aplica filtro y guarda en historial
 function applyFilters() {
-    historyStack.push(JSON.stringify(playerCombos)); // Guarda estado actual
-    
+    if (window.IS_FREE_VERSION) return;
+    historyStack.push(JSON.stringify(playerCombos)); 
     let f1 = Array.from(document.querySelectorAll('.f-j1:checked')).map(i=>i.dataset.cat);
     let f2 = Array.from(document.querySelectorAll('.f-j2:checked')).map(i=>i.dataset.cat);
     
@@ -246,7 +271,6 @@ function applyFilters() {
     pr('j1',f1); pr('j2',f2); sync(); update();
 }
 
-// FUNCION ACTUALIZADA: Deshacer paso a paso
 function undoFilter() { 
     if(historyStack.length > 0) { 
         playerCombos = JSON.parse(historyStack.pop()); 
@@ -255,18 +279,12 @@ function undoFilter() {
     } 
 }
 
-// NUEVA FUNCION: Limpieza total (Datos, Visual, Historial y Filtros)
 function clearTable() {
     if (confirm("¿Seguro que quieres borrar todo? (Se reiniciarán Rangos, Board y Filtros)")) {
-        // 1. Reiniciar Datos
         playerCombos = { j1: {}, j2: {} };
         board = [];
         historyStack = []; 
-
-        // 2. Limpiar visualmente los checkboxes de filtro
         document.querySelectorAll('input[type="checkbox"]').forEach(box => box.checked = false);
-
-        // 3. Actualizar UI
         sync();        
         renderBoard(); 
         renderDeck();  
@@ -280,7 +298,10 @@ function openH(){ const l=document.getElementById('hList'); l.innerHTML=""; hier
 function moveH(i,d){ let n=i+d; if(n>=0&&n<hierarchy.length){[hierarchy[i],hierarchy[n]]=[hierarchy[n],hierarchy[i]]; openH();}}
 function closeH(){ document.getElementById('modalH').style.display='none'; update(); }
 
-function saveRange(p){ const n=prompt("Nombre del rango:"); if(!n)return; const d={}; for(let id in playerCombos[p]) d[id.split('-').slice(1).join('-')]=playerCombos[p][id]; library.push({name:n, data:d, p}); renderLib(); }
+function saveRange(p){ 
+    if(window.IS_FREE_VERSION) return;
+    const n=prompt("Nombre del rango:"); if(!n)return; const d={}; for(let id in playerCombos[p]) d[id.split('-').slice(1).join('-')]=playerCombos[p][id]; library.push({name:n, data:d, p}); renderLib(); 
+}
 
 function renderLib(){ 
     const b=document.getElementById('libBox'); b.innerHTML=""; 
@@ -288,50 +309,47 @@ function renderLib(){
         <div class="lib-item">
             <div style="font-weight:bold; color:var(--accent); font-size:11px;">${it.name.toUpperCase()} <span style="font-size:9px; color:#666;">[${it.p.toUpperCase()}]</span></div>
             <div class="lib-actions">
-                <button class="btn-pro btn-util" style="flex:1; padding:4px; font-size:9px;" onclick="loadRange(${i},'j1')">P1</button>
-                <button class="btn-pro btn-util" style="flex:1; padding:4px; font-size:9px;" onclick="loadRange(${i},'j2')">P2</button>
-                <button class="btn-pro btn-danger" style="flex:0.6; padding:4px; font-size:9px;" onclick="library.splice(${i},1);renderLib()">DEL</button>
+                <button class="btn-pro btn-util" style="flex:1; padding:4px; font-size:9px;" onclick="${window.IS_FREE_VERSION ? 'showPremiumAlert()' : `loadRange(${i},'j1')`}">P1</button>
+                <button class="btn-pro btn-util" style="flex:1; padding:4px; font-size:9px;" onclick="${window.IS_FREE_VERSION ? 'showPremiumAlert()' : `loadRange(${i},'j2')`}">P2</button>
+                <button class="btn-pro btn-danger" style="flex:0.6; padding:4px; font-size:9px;" onclick="${window.IS_FREE_VERSION ? 'showPremiumAlert()' : `library.splice(${i},1);renderLib()`}">DEL</button>
             </div>
         </div>`); 
 }
 
 function loadRange(idx,tP){ const d=library[idx].data, nC={}; for(let u in d) nC[`${tP==='j1'?'m1':'m2'}-${u}`]=JSON.parse(JSON.stringify(d[u])); playerCombos[tP]=nC; sync(); update(); }
 
-function exportJSON(){ const b=new Blob([JSON.stringify({playerCombos,board,library,hierarchy,userGroups})],{type:"application/json"}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download="poker_lab_pro.json"; a.click(); }
+function exportJSON(){ if(window.IS_FREE_VERSION) return; const b=new Blob([JSON.stringify({playerCombos,board,library,hierarchy,userGroups})],{type:"application/json"}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download="poker_lab_pro.json"; a.click(); }
 
-function importJSON(e){ const r=new FileReader(); r.onload=(ev)=>{ const d=JSON.parse(ev.target.result); playerCombos=d.playerCombos; board=d.board; library=d.library||[]; hierarchy=d.hierarchy||hierarchy; userGroups=d.userGroups||[]; sync(); renderDeck(); renderBoard(); renderLib(); update(); }; r.readAsText(e.target.files[0]); }
+function importJSON(e){ if(window.IS_FREE_VERSION) return; const r=new FileReader(); r.onload=(ev)=>{ const d=JSON.parse(ev.target.result); playerCombos=d.playerCombos; board=d.board; library=d.library||[]; hierarchy=d.hierarchy||hierarchy; userGroups=d.userGroups||[]; sync(); renderDeck(); renderBoard(); renderLib(); update(); }; r.readAsText(e.target.files[0]); }
 
-// --- NUEVA FUNCIÓN PARA CARGAR LA CONFIGURACIÓN POR DEFECTO ---
 function loadDefaultConfig() {
-    // Busca el archivo en la raiz. Asegúrate que se llame exactamente así y tenga extensión .json
-    fetch('poker_lab_pro (1).json')
+    // Definimos qué JSON cargar basados en si es la versión gratuita o la de paga
+    const configFile = window.IS_FREE_VERSION ? 'poker_lab_pro (2).json' : 'poker_lab_pro (1).json';
+
+    fetch(configFile)
         .then(response => {
             if (!response.ok) {
-                throw new Error("No se encontró el archivo de configuración predeterminada.");
+                throw new Error("No se encontró el archivo de configuración.");
             }
             return response.json();
         })
         .then(d => {
-            // Si carga con éxito, aplicamos los datos igual que en importJSON
             playerCombos = d.playerCombos || { j1: {}, j2: {} };
             board = d.board || [];
             library = d.library || [];
-            // Si el JSON trae jerarquía la usamos, si no, dejamos la default
             if(d.hierarchy) hierarchy = d.hierarchy; 
             userGroups = d.userGroups || [];
             
-            // Actualizamos toda la UI
             sync(); 
             renderDeck(); 
             renderBoard(); 
             renderLib(); 
             update();
-            console.log("Configuración predeterminada cargada con éxito.");
+            console.log(`Configuración predeterminada cargada (${configFile}).`);
         })
         .catch(error => {
             console.warn(error);
             console.log("Iniciando aplicación con valores vacíos.");
-            // Si falla (no existe el archivo), simplemente actualizamos la vista vacía
             update();
         });
 }
@@ -341,6 +359,4 @@ initCharts();
 renderMatrix('m1','j1','p1-sel'); 
 renderMatrix('m2','j2','p2-sel'); 
 renderDeck(); 
-
-// CAMBIO AQUÍ: Llamamos a la carga de config en vez de update() directo
 loadDefaultConfig();
