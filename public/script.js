@@ -1,7 +1,6 @@
 Chart.register(ChartDataLabels);
 
-// Configura aquí la URL de tu backend. 
-// Mientras pruebas en tu computadora, usa localhost. Cuando lo subas a Render, pon la URL real.
+// REEMPLAZA ESTO CON LA URL DE TU PROYECTO EN VERCEL
 const BACKEND_URL = 'https://poker-backend-seven.vercel.app'; 
 
 let hierarchy = ["STRAIGHT FLUSH","QUADS","FULL HOUSE","FLUSH","STRAIGHT","3 OF A KIND","TWO PAIR","OVERPAIR","TOP PAIR","TOP PAIR BAD K","MIDDLE PAIR","WEAK PAIR","FLUSH DRAW","OESD","GUTSHOT","ACE HIGH (kicker 9+)","ACE HIGH (kicker <9)","OVERCARDS","BACK DOOR FD","BACK DOOR SD","AIR / NOTHING"];
@@ -13,24 +12,33 @@ const ranks=['A','K','Q','J','T','9','8','7','6','5','4','3','2'], suits=['p','c
       suitSym={p:'♠',c:'♥',d:'♦',t:'♣'}, suitCls={p:'p-color',c:'c-color',d:'d-color',t:'t-color'},
       vals={'A':14,'K':13,'Q':12,'J':11,'T':10,'9':9,'8':8,'7':7,'6':6,'5':5,'4':4,'3':3,'2':2};
 
-// Lógica de UI Asíncrona conectada al Backend
 async function update() {
     const body = document.getElementById('m-body'); 
     body.innerHTML = "<tr><td colspan='7' style='text-align:center; padding: 20px;'>Analizando combos...</td></tr>";
 
     try {
+        let sessionToken = null;
+        if (window.Clerk && window.Clerk.session) {
+            sessionToken = await window.Clerk.session.getToken();
+        }
+
         const response = await fetch(`${BACKEND_URL}/api/analyze`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionToken}` 
+            },
             body: JSON.stringify({ playerCombos, board })
         });
 
-        if (!response.ok) throw new Error('Error en el servidor');
-        const stats = await response.json();
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Debes iniciar sesión para analizar manos.');
+            throw new Error('Error en el servidor de análisis');
+        }
         
+        const stats = await response.json();
         body.innerHTML = "";
         
-        // RENDERIZADO DE GRUPOS
         userGroups.forEach((g, idx) => {
             const v1 = g.cats.reduce((a,c)=>a+(stats.j1.c[c]||0),0), v2 = g.cats.reduce((a,c)=>a+(stats.j2.c[c]||0),0);
             const p1 = stats.j1.t ? (v1/stats.j1.t*100).toFixed(1) : 0, p2 = stats.j2.t ? (v2/stats.j2.t*100).toFixed(1) : 0;
@@ -47,7 +55,6 @@ async function update() {
                 <td onclick="userGroups.splice(${idx},1);update()" style="color:var(--danger); cursor:pointer; font-weight:bold; font-size:18px;">×</td></tr>`;
         });
 
-        // RENDERIZADO DE CATEGORIAS
         hierarchy.forEach(cat => {
             const c1 = stats.j1.c[cat]||0, c2 = stats.j2.c[cat]||0, p1 = stats.j1.t ? (c1/stats.j1.t*100).toFixed(1) : 0, p2 = stats.j2.t ? (c2/stats.j2.t*100).toFixed(1) : 0;
             const tags = userGroups.filter(g => g.cats.includes(cat)).map(g => `<span class="tag-group">${g.name}</span>`).join("");
@@ -69,7 +76,7 @@ async function update() {
 
     } catch (error) {
         console.error("Fallo de conexión:", error);
-        body.innerHTML = "<tr><td colspan='7' style='color:red; text-align:center;'>Error al conectar con el servidor de análisis.</td></tr>";
+        body.innerHTML = `<tr><td colspan='7' style='color:red; text-align:center;'>${error.message}</td></tr>`;
     }
 }
 
@@ -167,25 +174,37 @@ function createGroup() {
     if(n && cats.length) { userGroups.push({name:n, cats}); document.getElementById('grpName').value=""; update(); }
 }
 
-// Filtros asíncronos conectados al backend
 async function applyFilters() {
     historyStack.push(JSON.stringify(playerCombos)); 
     let f1 = Array.from(document.querySelectorAll('.f-j1:checked')).map(i=>i.dataset.cat);
     let f2 = Array.from(document.querySelectorAll('.f-j2:checked')).map(i=>i.dataset.cat);
     
     try {
+        let sessionToken = null;
+        if (window.Clerk && window.Clerk.session) {
+            sessionToken = await window.Clerk.session.getToken();
+        }
+
         const response = await fetch(`${BACKEND_URL}/api/filter`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionToken}`
+            },
             body: JSON.stringify({ playerCombos, board, f1, f2 })
         });
-        if (!response.ok) throw new Error('Error en el filtrado del servidor');
+
+        if (!response.ok) {
+            if (response.status === 401) throw new Error('Acceso denegado al servidor de filtros.');
+            throw new Error('Error en el filtrado del servidor');
+        }
+
         playerCombos = await response.json();
         sync(); 
         update();
     } catch (error) {
         console.error("Error al aplicar filtros:", error);
-        alert("Hubo un problema procesando los filtros en el servidor.");
+        alert(error.message || "Hubo un problema procesando los filtros en el servidor.");
     }
 }
 
