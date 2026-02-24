@@ -3,6 +3,9 @@ Chart.register(ChartDataLabels);
 // REEMPLAZA ESTO CON LA URL DE TU PROYECTO EN VERCEL
 const BACKEND_URL = 'https://poker-backend-seven.vercel.app'; 
 
+// PALETA DE COLORES PARA LOS GRUPOS
+const GROUP_COLORS = ['#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e74c3c', '#1abc9c', '#d35400', '#e67e22', '#16a085'];
+
 let hierarchy = ["STRAIGHT FLUSH","QUADS","FULL HOUSE","FLUSH","STRAIGHT","3 OF A KIND","TWO PAIR","OVERPAIR","TOP PAIR","TOP PAIR BAD K","MIDDLE PAIR","WEAK PAIR","FLUSH DRAW","OESD","GUTSHOT","ACE HIGH (kicker 9+)","ACE HIGH (kicker <9)","OVERCARDS","BACK DOOR FD","BACK DOOR SD","AIR / NOTHING"];
 
 let playerCombos = { j1: {}, j2: {} }, board = [], userGroups = [], library = [], historyStack = [];
@@ -28,7 +31,6 @@ async function update() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${sessionToken}` 
             },
-            // Se envía la jerarquía al servidor
             body: JSON.stringify({ playerCombos, board, hierarchy }) 
         });
 
@@ -40,13 +42,16 @@ async function update() {
         const stats = await response.json();
         body.innerHTML = "";
         
+        // RENDERIZADO DE GRUPOS (Con color dinámico)
         userGroups.forEach((g, idx) => {
             const v1 = g.cats.reduce((a,c)=>a+(stats.j1.c[c]||0),0), v2 = g.cats.reduce((a,c)=>a+(stats.j2.c[c]||0),0);
             const p1 = stats.j1.t ? (v1/stats.j1.t*100).toFixed(1) : 0, p2 = stats.j2.t ? (v2/stats.j2.t*100).toFixed(1) : 0;
+            const gColor = g.color || GROUP_COLORS[idx % GROUP_COLORS.length]; // Color del grupo
+            
             body.innerHTML += `<tr style="background:rgba(241,196,15,0.07);">
                 <td><input type="checkbox" class="f-j1-g" data-idx="${idx}" onchange="toggleGroup(this,'j1',${idx})"></td>
                 <td style="font-weight:bold; color:var(--j1);">${v1}</td>
-                <td style="color:var(--accent); font-weight:bold; font-size:14px;">📁 ${g.name}</td>
+                <td style="color:${gColor}; font-weight:bold; font-size:14px;">📁 ${g.name}</td>
                 <td>
                     <div class="bar-wrap bar-grp"><div class="bar-fill" style="width:${p1}%; background:#27ae60"></div><span class="bar-text">${v1} combos (${p1}%)</span></div>
                     <div class="bar-wrap bar-grp"><div class="bar-fill" style="width:${p2}%; background:#2980b9"></div><span class="bar-text">${v2} combos (${p2}%)</span></div>
@@ -56,9 +61,16 @@ async function update() {
                 <td onclick="userGroups.splice(${idx},1);update()" style="color:var(--danger); cursor:pointer; font-weight:bold; font-size:18px;">×</td></tr>`;
         });
 
+        // RENDERIZADO DE CATEGORÍAS (Distintivos con color de grupo)
         hierarchy.forEach(cat => {
             const c1 = stats.j1.c[cat]||0, c2 = stats.j2.c[cat]||0, p1 = stats.j1.t ? (c1/stats.j1.t*100).toFixed(1) : 0, p2 = stats.j2.t ? (c2/stats.j2.t*100).toFixed(1) : 0;
-            const tags = userGroups.filter(g => g.cats.includes(cat)).map(g => `<span class="tag-group">${g.name}</span>`).join("");
+            
+            // Crea los tags aplicándoles el color específico de su grupo
+            const tags = userGroups.filter(g => g.cats.includes(cat)).map(g => {
+                const gColor = g.color || GROUP_COLORS[userGroups.indexOf(g) % GROUP_COLORS.length];
+                return `<span class="tag-group" style="background-color: ${gColor}; color: #fff; border: none; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 4px; display: inline-block; margin-bottom: 2px;">${g.name}</span>`;
+            }).join("");
+
             body.innerHTML += `<tr>
                 <td><input type="checkbox" class="f-j1" data-cat="${cat}"></td>
                 <td>${c1}</td>
@@ -91,7 +103,7 @@ function toggleGroup(el, p, idx) {
 
 function initCharts() {
     const cfg = (t) => ({
-        type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#e74c3c', '#1abc9c', '#d35400'] }] },
+        type: 'pie', data: { labels: [], datasets: [{ data: [], backgroundColor: GROUP_COLORS }] },
         options: { 
             responsive: true, maintainAspectRatio: false, 
             layout: { padding: { left: 0, right: 10, top: 0, bottom: 0 } },
@@ -124,9 +136,15 @@ function updateCharts(stats) {
         chartJ1.data.datasets[0].data = []; chartJ1.data.labels = [];
         chartJ2.data.datasets[0].data = []; chartJ2.data.labels = [];
     } else {
+        const bgColors = userGroups.map((g, i) => g.color || GROUP_COLORS[i % GROUP_COLORS.length]);
         const data1 = userGroups.map(g => stats.j1.t ? (g.cats.reduce((a,c)=>a+(stats.j1.c[c]||0),0)/stats.j1.t*100).toFixed(1) : 0);
         const data2 = userGroups.map(g => stats.j2.t ? (g.cats.reduce((a,c)=>a+(stats.j2.c[c]||0),0)/stats.j2.t*100).toFixed(1) : 0);
-        chartJ1.data.datasets[0].data = data1; chartJ2.data.datasets[0].data = data2;
+        
+        chartJ1.data.datasets[0].data = data1; 
+        chartJ1.data.datasets[0].backgroundColor = bgColors;
+        chartJ2.data.datasets[0].data = data2;
+        chartJ2.data.datasets[0].backgroundColor = bgColors;
+        
         chartJ1.data.labels = userGroups.map((g, i) => wrapText(`${g.name} (${data1[i]}%)`));
         chartJ2.data.labels = userGroups.map((g, i) => wrapText(`${g.name} (${data2[i]}%)`));
     }
@@ -172,7 +190,13 @@ function renderBoard(){
 
 function createGroup() {
     const n = document.getElementById('grpName').value, cats = Array.from(document.querySelectorAll('.f-j1:checked')).map(i => i.dataset.cat);
-    if(n && cats.length) { userGroups.push({name:n, cats}); document.getElementById('grpName').value=""; update(); }
+    if(n && cats.length) { 
+        // Se asigna color al crear
+        const color = GROUP_COLORS[userGroups.length % GROUP_COLORS.length];
+        userGroups.push({name:n, cats, color}); 
+        document.getElementById('grpName').value=""; 
+        update(); 
+    }
 }
 
 async function applyFilters() {
@@ -192,7 +216,6 @@ async function applyFilters() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${sessionToken}`
             },
-            // Se envía la jerarquía al servidor
             body: JSON.stringify({ playerCombos, board, f1, f2, hierarchy }) 
         });
 
@@ -231,9 +254,25 @@ function saveRange(p){ const n=prompt("Nombre del rango:"); if(!n)return; const 
 function renderLib(){ 
     const b=document.getElementById('libBox'); 
     b.innerHTML=""; 
+
+    // Obtener el término de búsqueda y prepararlo para wildcards (*)
+    const searchEl = document.getElementById('rangeSearch');
+    const term = searchEl ? searchEl.value.trim().toLowerCase() : '';
+    
+    // Transforma un '*' en un patrón regex que permite buscar partes del nombre
+    let regex;
+    try {
+        regex = new RegExp(term.replace(/\*/g, '.*'), 'i');
+    } catch(e) {
+        regex = new RegExp('', 'i'); 
+    }
+
     library.forEach((it,i) => {
-        // Fallbacks seguros para JSON antiguos
         const nameStr = it.name ? it.name.toUpperCase() : 'RANGO';
+        
+        // Si hay un término de búsqueda y el nombre no encaja con el wildcard, lo saltamos
+        if (term && !regex.test(nameStr)) return;
+
         const pStr = it.p ? `[${it.p.toUpperCase()}]` : ''; 
         
         b.innerHTML+=`
@@ -257,7 +296,6 @@ function importJSON(e){
     r.onload=(ev)=>{ 
         try {
             const d=JSON.parse(ev.target.result); 
-            // Protecciones añadidas por si el JSON viene incompleto
             playerCombos = d.playerCombos || { j1: {}, j2: {} }; 
             board = d.board || []; 
             library = d.library || []; 
@@ -275,7 +313,6 @@ function importJSON(e){
         }
     }; 
     r.readAsText(e.target.files[0]); 
-    // Resetea el input para permitir subir el mismo archivo varias veces seguidas
     e.target.value = ''; 
 }
 
