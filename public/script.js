@@ -28,7 +28,8 @@ async function update() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${sessionToken}` 
             },
-            body: JSON.stringify({ playerCombos, board })
+            // AÑADIDO: Pasamos hierarchy al servidor
+            body: JSON.stringify({ playerCombos, board, hierarchy }) 
         });
 
         if (!response.ok) {
@@ -191,7 +192,8 @@ async function applyFilters() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${sessionToken}`
             },
-            body: JSON.stringify({ playerCombos, board, f1, f2 })
+            // AÑADIDO: Pasamos hierarchy al servidor
+            body: JSON.stringify({ playerCombos, board, f1, f2, hierarchy }) 
         });
 
         if (!response.ok) {
@@ -217,8 +219,6 @@ function clearTable() {
         sync(); renderBoard(); renderDeck(); update();      
     }
 }
-
-function sync() { document.querySelectorAll('.cell').forEach(c => { c.classList.remove('p1-sel','p2-sel'); if(c.id.startsWith('m1')&&playerCombos.j1[c.id]) c.classList.add('p1-sel'); if(c.id.startsWith('m2')&&playerCombos.j2[c.id]) c.classList.add('p2-sel'); }); }
 
 function openH(){ const l=document.getElementById('hList'); l.innerHTML=""; hierarchy.forEach((n,i)=>l.innerHTML+=`<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #333; font-size:11px;"><span>${n}</span><div><button onclick="moveH(${i},-1)">▲</button><button onclick="moveH(${i},1)">▼</button></div></div>`); document.getElementById('modalH').style.display='block'; }
 function moveH(i,d){ let n=i+d; if(n>=0&&n<hierarchy.length){[hierarchy[i],hierarchy[n]]=[hierarchy[n],hierarchy[i]]; openH();}}
